@@ -8,7 +8,7 @@ async function storeData(user_id, trash_craft_id) { // Tambahkan parameter yang 
 
     // Configure connection options for Cloud SQL
     const clientOpts = await connector.getOptions({
-      instanceConnectionName: 'capstonec242-ps168:asia-southeast2:refind-project', // Ganti dengan nama koneksi instance Anda
+      instanceConnectionName: 'capstonec242-ps168:asia-southeast2:refind-app', // Ganti dengan nama koneksi instance Anda
       ipType: 'PUBLIC', // Gunakan 'PRIVATE' jika instance Anda bersifat privat
     });
 
