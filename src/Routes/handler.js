@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const predictClassification = require("../Service/inferenceService");
+const storeData = require("../Service/storeData");
 
 
 async function postPredictHandler(request, h) {
@@ -37,6 +38,10 @@ async function postPredictHandler(request, h) {
     data,
   });
   response.code(201);
+
+  console.log("tets")
+  await storeData()
+  console.log("tetssss")
 
   return response;
 }
