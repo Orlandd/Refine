@@ -32,6 +32,8 @@ async function postPredictHandler(request, h) {
     createdAt,
   };
 
+  
+
   const response = h.response({
     status: "success",
     message: "Model is predicted successfully",
@@ -40,7 +42,7 @@ async function postPredictHandler(request, h) {
   response.code(201);
 
   console.log("tets")
-  await storeData()
+  await storeData(1,1,1)
   console.log("tetssss")
 
   return response;
