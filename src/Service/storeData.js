@@ -1,7 +1,7 @@
 const mysql = require('mysql2/promise');
 const { Connector } = require('@google-cloud/cloud-sql-connector');
 
-async function storeData(user_id, trash_craft_id) { // Tambahkan parameter yang diperlukan
+async function storeData(user_id, data) { // Tambahkan parameter yang diperlukan
   try {
     // Create a Connector instance
     const connector = new Connector();
@@ -26,12 +26,20 @@ async function storeData(user_id, trash_craft_id) { // Tambahkan parameter yang 
     const conn = await pool.getConnection();
     const [result] = await conn.query(`SELECT NOW();`);
 
+
+    for (const craft of data) {
+      const query = `INSERT INTO Histories (user_id, trash_craft_id) 
+                     VALUES (?, ?);`;
+    
+      await conn.execute(query, [user_id, craft.id]); // Gunakan nilai dari craft
+    }
+
     // Pastikan untuk mendefinisikan id jika diperlukan
     const id = 1; // Ganti dengan nilai yang sesuai
-    const query = `INSERT INTO Histories (user_id, trash_craft_id) 
-                   VALUES (?, ?);`; // Hanya dua placeholder
+    // const query = `INSERT INTO Histories (user_id, trash_craft_id) 
+    //                VALUES (?, ?);`; // Hanya dua placeholder
 
-    await conn.execute(query, [user_id, trash_craft_id]); // Gunakan conn di sini
+    // await conn.execute(query, [user_id, trash_craft_id]); // Gunakan conn di sini
 
     console.log('Connection successful! Server time:', result[0]['NOW()']);
 

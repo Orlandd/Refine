@@ -31,7 +31,6 @@ async function predictClassification(model, image) {
     const label = classes[highestProbabilityIndex];
     console.log(`Prediksi kelas: ${label}`);
 
-
     let suggestion;
     if (label === "Cancer") {
       suggestion = "Segera periksa ke dokter!";
@@ -40,6 +39,7 @@ async function predictClassification(model, image) {
     }
 
     return { label};
+    
   } catch (error) {
     throw new InputError(
       `Terjadi kesalahan saat memproses gambar: ${error.message}`
