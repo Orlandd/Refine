@@ -28,10 +28,8 @@ async function storeData(user_id, data) { // Tambahkan parameter yang diperlukan
 
 
     for (const craft of data) {
-      const query = `INSERT INTO Histories (user_id, trash_craft_id) 
-                     VALUES (?, ?);`;
-    
-      await conn.execute(query, [user_id, craft.id]); // Gunakan nilai dari craft
+      const query = `INSERT INTO Histories (user_id, trash_craft_id) VALUES (?, ?);`;
+      await pool.execute(query, [user_id, craft.ID]);
     }
 
     // Pastikan untuk mendefinisikan id jika diperlukan

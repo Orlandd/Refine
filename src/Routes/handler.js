@@ -49,7 +49,7 @@ async function postPredictHandler(request, h) {
 
   console.log(allcraft);
   console.log("tets")
-  // await storeData(1, allcraft)
+  await storeData(1, allcraft)
   console.log("tetssss")
 
   return response;
