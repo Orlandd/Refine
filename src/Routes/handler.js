@@ -4,12 +4,14 @@ const storeData = require("../Service/storeData");
 
 const mysql = require('mysql2/promise');
 const { Connector } = require('@google-cloud/cloud-sql-connector');
-const { log } = require("console");
 
 
 async function postPredictHandler(request, h) {
   const { image } = request.payload;
+  const {user} = request.payload
   const { model } = request.server.app;
+
+  // console.log(`user id : ${user}`);
 
   const imageSize = Buffer.byteLength(image, "base64");
 
@@ -49,7 +51,7 @@ async function postPredictHandler(request, h) {
 
   console.log(allcraft);
   console.log("tets")
-  await storeData(1, allcraft)
+  await storeData(user, allcraft)
   console.log("tetssss")
 
   return response;
