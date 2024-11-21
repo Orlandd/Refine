@@ -1,21 +1,39 @@
 const crypto = require("crypto");
 const predictClassification = require("../Service/inferenceService");
 const storeData = require("../Service/storeData");
-
-const mysql = require('mysql2/promise');
-const { Connector } = require('@google-cloud/cloud-sql-connector');
-
+const createPool = require("../Service/createPool");
+const mysql = require("mysql2/promise");
+const { Connector } = require("@google-cloud/cloud-sql-connector");
+let pool;
 
 async function postPredictHandler(request, h) {
   const { image } = request.payload;
-  const {user} = request.payload
+  const { user } = request.payload;
+  const { token } = request.payload;
   const { model } = request.server.app;
 
-  // console.log(`user id : ${user}`);
+  // validasi input 
+  if (!image || !user || !token) {
+    const response = h.response({
+      status: "fail",
+      message: "Invalid input. Missing required fields.",
+    });
+    response.code(400);
+    return response;
+  }
+
+  // auth 
+  if (await auth(user, token) === 0 ) {
+    const response = h.response({
+      status: "failed",
+      message: "User unauthorized.",
+    });
+    response.code(401);
+    return response;
+  }
 
   const imageSize = Buffer.byteLength(image, "base64");
 
-  console.log(imageSize);
 
   if (imageSize > 1000000) {
     const response = h.response({
@@ -25,18 +43,33 @@ async function postPredictHandler(request, h) {
     response.code(413);
     return response;
   }
-  // console.log(model);
 
   const { label } = await predictClassification(model, image);
-
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
+  const allcraft = await getDataCrafts(label);
+
+  // cek allcraft
+  if (allcraft.error) {
+    const response = h.response({
+      status: "fail",
+      message: `Error retrieving crafts: ${allcraft.error}`,
+    });
+    response.code(500);
+    return response;
+  }
 
   const data = {
     id,
     result: label,
+    sugesstion: allcraft,
     createdAt,
   };
+
+  // upload ke database
+  if (allcraft.length !== 0) {
+    await storeData(user, allcraft);
+  }
 
   const response = h.response({
     status: "success",
@@ -45,48 +78,47 @@ async function postPredictHandler(request, h) {
   });
   response.code(201);
 
-  const allcraft = await getDataCrafts(label);
-
-  // foreach -> database -> histori  
-
-  console.log(allcraft);
-  console.log("tets")
-  await storeData(user, allcraft)
-  console.log("tetssss")
-
   return response;
 }
 
-async function getDataCrafts(label) { // Tambahkan parameter yang diperlukan
+async function auth(id, token) {
   try {
-    // Create a Connector instance
-    const connector = new Connector();
+    if (!pool) {
+      pool = await createPool(); // Inisialisasi pool jika belum ada
+    }
 
-    // Configure connection options for Cloud SQL
-    const clientOpts = await connector.getOptions({
-      instanceConnectionName: 'capstonec242-ps168:asia-southeast2:refind-app', // Ganti dengan nama koneksi instance Anda
-      ipType: 'PUBLIC', // Gunakan 'PRIVATE' jika instance Anda bersifat privat
-    });
-
-    // Create a connection pool
-    const pool = await mysql.createPool({
-      ...clientOpts,
-      user: 'refind', // Ganti dengan username database Anda
-      password: 'root', // Ganti dengan password database Anda
-      database: 'Refind', // Ganti dengan nama database Anda
-    });
-
-    console.log('Testing connection to the database...');
-
-    // Test query to verify the connection
     const conn = await pool.getConnection();
 
+    const query = `SELECT token FROM Users WHERE id = ?;`;
+    const [rows] = await conn.query(query, [id]);
+
+    const getToken = rows[0]?.token;
+
+    if (getToken !== token) {
+      await conn.release();
+      return 0; // Tidak sah
+    }
+
+    await conn.release();
+    return 1; // Sah
+  } catch (err) {
+    console.error("Error in auth:", err.message);
+    return { error: err.message };
+  }
+}
+
+async function getDataCrafts(label) {
+  try {
+    if (!pool) {
+      pool = await createPool(); // Inisialisasi pool jika belum ada
+    }
+
+    const conn = await pool.getConnection();
 
     const query = `SELECT id FROM Trash WHERE type = ?;`;
     const [rows] = await conn.query(query, [label]);
 
-    const id = rows[0].id; // Ambil id dari hasil query pertama
-    console.log(`id : ${id}`);
+    const id = rows[0]?.id;
 
     const query2 = `
         SELECT * 
@@ -96,17 +128,12 @@ async function getDataCrafts(label) { // Tambahkan parameter yang diperlukan
     `;
     const [result] = await conn.query(query2, [id]);
 
-    // Close the connection
-    await conn.release(); // Lepaskan koneksi
-    await pool.end(); // Tutup pool
-    connector.close();
-
+    await conn.release();
     return result;
-
   } catch (err) {
-    console.error('Failed to connect to the database:', err.message);
+    console.error("Error in getAllCraft:", err.message);
+    return { error: err.message };
   }
 }
-
 
 module.exports = postPredictHandler;
